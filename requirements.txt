@@ -3,3 +3,4 @@ Flask-SocketIO
 numpy
 Flask-Cors
 gunicorn
+gevent-websocket  # Add this line
