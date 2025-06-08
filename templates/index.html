@@ -16,7 +16,6 @@
                     },
                 }
             },
-            // Important for embedding in WordPress: Scopes Tailwind to this container
             important: '#lissajous-app-container',
         }
     </script>
@@ -25,10 +24,9 @@
     <!-- Socket.IO client library CDN -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        /* Scoped styles specific to the #lissajous-app-container */
         #lissajous-app-container {
             @apply flex flex-col items-center justify-center p-4;
-            max-width: 1000px; /* Increased max-width for more controls */
+            max-width: 1000px;
             width: 100%;
             margin: 20px auto;
             background-color: #1a202c;
@@ -47,7 +45,7 @@
         }
 
         #lissajous-app-container .controls-grid {
-            @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full; /* Grid for 4 controls */
+            @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full;
         }
 
         #lissajous-app-container .control-group {
@@ -88,7 +86,6 @@
     </style>
 </head>
 <body>
-    <!-- Unique container for the entire Lissajous plotter application -->
     <div id="lissajous-app-container">
         <h1>Lissajous Pattern Generator (XY Scope)</h1>
 
@@ -158,9 +155,8 @@
     </div>
 
     <script>
-        // This JavaScript will connect to your Render app
-        // IMPORTANT: Replace 'https://waveform-plotter-app.onrender.com' with YOUR actual Render service URL.
-        const socket = io('https://waveform-plotter-app.onrender.com');
+        // This JavaScript will connect to your local Gunicorn server for testing
+        const socket = io('http://localhost:5000'); // Ensure this points to your local server!
         let lissajousChart; // Chart.js instance for the scatter plot
 
         // Get HTML elements for X-axis controls
@@ -232,33 +228,34 @@
 
         // Initialize Chart.js for an XY scatter plot
         function initializeChart(xData, yData, paramsX, paramsY) {
+            console.log("initializeChart called with data:", { xData, yData }); // NEW LOG
             const ctx = document.getElementById('lissajousChart').getContext('2d');
             
-            // Format data for Chart.js scatter plot: array of {x: value, y: value} objects
             const scatterData = xData.map((xVal, index) => ({
                 x: xVal,
                 y: yData[index]
             }));
+            console.log("Prepared scatterData for Chart.js:", scatterData); // NEW LOG
 
             lissajousChart = new Chart(ctx, {
-                type: 'scatter', // Use 'scatter' type for XY plots
+                type: 'scatter',
                 data: {
                     datasets: [{
                         label: 'Lissajous Pattern',
                         data: scatterData,
-                        borderColor: 'rgb(0, 255, 255)', // Cyan line
-                        backgroundColor: 'rgba(0, 255, 255, 0.1)', // Light cyan fill
+                        borderColor: 'rgb(0, 255, 255)',
+                        backgroundColor: 'rgba(0, 255, 255, 0.1)',
                         borderWidth: 2,
-                        pointRadius: 0, // No points for smooth line
-                        showLine: true, // Connect the points
-                        tension: 0.1 // Smooth the lines
+                        pointRadius: 0,
+                        showLine: true,
+                        tension: 0.1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: {
-                        duration: 0 // Disable animation for immediate updates
+                        duration: 0
                     },
                     scales: {
                         x: {
@@ -267,8 +264,8 @@
                                 text: 'X-Axis Amplitude',
                                 color: '#e0e0e0'
                             },
-                            min: -1, // Fixed range for X-axis
-                            max: 1,  // Fixed range for X-axis
+                            min: -1,
+                            max: 1,
                             ticks: {
                                 color: '#e0e0e0'
                             },
@@ -282,8 +279,8 @@
                                 text: 'Y-Axis Amplitude',
                                 color: '#e0e0e0'
                             },
-                            min: -1, // Fixed range for Y-axis
-                            max: 1,  // Fixed range for Y-axis
+                            min: -1,
+                            max: 1,
                             ticks: {
                                 color: '#e0e0e0'
                             },
@@ -294,20 +291,20 @@
                     },
                     plugins: {
                         legend: {
-                            display: false // No legend needed for single scatter plot
+                            display: false
                         },
                         tooltip: {
-                            enabled: false // Tooltips might clutter for this continuous plot
+                            enabled: false
                         }
                     }
                 }
             });
+            console.log("Chart.js initialized."); // NEW LOG
         }
 
         // --- Socket.IO Event Listeners ---
         socket.on('connect', () => {
             console.log('Connected to server via WebSocket');
-            // Server will send initial waveform data upon connection
         });
 
         socket.on('waveform_data', (response) => {
@@ -317,7 +314,7 @@
             const paramsX = response.params_x;
             const paramsY = response.params_y;
 
-            // Update all controllers to reflect current state (especially on initial load)
+            // Update all controllers to reflect current state
             waveTypeXSelect.value = paramsX.type;
             frequencyXSlider.value = paramsX.frequency;
             amplitudeXSlider.value = paramsX.amplitude;
@@ -334,18 +331,18 @@
             amplitudeYValueSpan.textContent = `${paramsY.amplitude.toFixed(2)}`;
             phaseYValueSpan.textContent = `${paramsY.phase_deg.toFixed(1)}°`;
 
-            // Format data for Chart.js scatter plot
             const scatterData = xData.map((xVal, index) => ({
                 x: xVal,
                 y: yData[index]
             }));
+            console.log("Updated scatterData for Chart.js:", scatterData); // NEW LOG
 
-            // If chart not initialized, create it. Otherwise, update its data.
             if (!lissajousChart) {
                 initializeChart(xData, yData, paramsX, paramsY);
             } else {
                 lissajousChart.data.datasets[0].data = scatterData;
-                lissajousChart.update(); // Redraw the chart
+                lissajousChart.update();
+                console.log("Chart.js updated."); // NEW LOG
             }
         });
 
