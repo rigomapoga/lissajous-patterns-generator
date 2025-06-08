@@ -97,7 +97,7 @@ def test_connect():
     # Initial parameters for X-axis (Buffer 1)
     initial_params_x = {'type': 'sine', 'frequency': 1.0, 'amplitude': 0.8, 'phase_deg': 0.0}
     # Initial parameters for Y-axis (Buffer 2)
-    initial_params_y = {'type': 'sine', 'frequency': 2.0, 'amplitude': 0.8, 'phase_deg': 90.0} # 90 deg for a circle/ellipse
+    initial_params_y = {'type': 'sine', 'frequency': 2.0, 'amplitude': 0.8, 'phase_deg': 0.0}
 
     generator = WaveformGenerator()
     x_data = generator._generate_wave(

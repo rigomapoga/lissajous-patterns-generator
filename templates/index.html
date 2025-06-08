@@ -78,7 +78,7 @@
 
         #lissajous-app-container .chart-container {
             @apply w-full bg-gray-800 rounded-xl shadow-inner flex items-center justify-center p-4;
-            height: 600px;
+            height: 500px;
         }
         #lissajous-app-container canvas {
             @apply w-full h-full;
@@ -103,7 +103,7 @@
                 </div>
                 <div class="control-group">
                     <label for="frequencyX">Frequency X (Hz):</label>
-                    <input type="range" id="frequencyX" min="0.1" max="10" step="0.1" value="1.0">
+                    <input type="range" id="frequencyX" min="1" max="10" step="1" value="1.0">
                     <span id="frequencyXValue" class="value-display">1.0 Hz</span>
                 </div>
                 <div class="control-group">
@@ -133,7 +133,7 @@
                 </div>
                 <div class="control-group">
                     <label for="frequencyY">Frequency Y (Hz):</label>
-                    <input type="range" id="frequencyY" min="0.1" max="10" step="0.1" value="2.0">
+                    <input type="range" id="frequencyY" min="1" max="10" step="1" value="2.0">
                     <span id="frequencyYValue" class="value-display">2.0 Hz</span>
                 </div>
                 <div class="control-group">
@@ -143,8 +143,8 @@
                 </div>
                 <div class="control-group">
                     <label for="phaseY">Phase Shift Y (Deg):</label>
-                    <input type="range" id="phaseY" min="-90" max="90" step="1" value="90">
-                    <span id="phaseYValue" class="value-display">90.0°</span>
+                    <input type="range" id="phaseY" min="-90" max="90" step="1" value="0">
+                    <span id="phaseYValue" class="value-display">0.0°</span>
                 </div>
             </div>
         </div>
