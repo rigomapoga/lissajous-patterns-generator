@@ -16,6 +16,7 @@
                     },
                 }
             },
+            // Important for embedding in WordPress: Scopes Tailwind to this container
             important: '#lissajous-app-container',
         }
     </script>
@@ -24,9 +25,10 @@
     <!-- Socket.IO client library CDN -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
+        /* Scoped styles specific to the #lissajous-app-container */
         #lissajous-app-container {
             @apply flex flex-col items-center justify-center p-4;
-            max-width: 1000px;
+            max-width: 1000px; /* Increased max-width for more controls */
             width: 100%;
             margin: 20px auto;
             background-color: #1a202c;
@@ -34,6 +36,8 @@
             box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
             color: #e2e8f0;
             font-family: 'Inter', sans-serif;
+            position: relative; /* Needed for absolute positioning of loader */
+            min-height: 700px; /* Ensure container has enough height to show loader */
         }
 
         #lissajous-app-container h1 {
@@ -45,7 +49,7 @@
         }
 
         #lissajous-app-container .controls-grid {
-            @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full;
+            @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full; /* Grid for 4 controls */
         }
 
         #lissajous-app-container .control-group {
@@ -78,104 +82,165 @@
 
         #lissajous-app-container .chart-container {
             @apply w-full bg-gray-800 rounded-xl shadow-inner flex items-center justify-center p-4;
-            height: 500px;
-            width:500px;
+            height: 600px; /* Increased height for better visibility */
         }
         #lissajous-app-container canvas {
             @apply w-full h-full;
-
         }
-        #lissajous-app-container
-        {
+        /* Custom styles provided by the user that were removed for clarity and now added back with !important */
+        #lissajous-app-container {
             padding: 20px !important;
             border-radius: 5px !important;
         }
-         .main-content-container, body
-        {
+        .main-content-container, body {
             background-color: #111111 !important;
         }
-        select
-        {
-            color: black !important;
+        select {
+            color: black !important; /* Forces select text to black */
         }
-        .elementor-location-footer
-        {
-            display: none;
+        .elementor-location-footer {
+            display: none; /* Hides the footer if using Elementor */
+        }
+
+        /* --- Loading Overlay Styles --- */
+        #loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(26, 32, 44, 0.95); /* Semi-transparent dark background */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #e2e8f0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            z-index: 1000; /* Ensure it's on top */
+            border-radius: 12px; /* Match container border-radius */
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        #loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none; /* Allow clicks through when hidden */
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 255, 255, 0.3);
+            border-top: 4px solid #00ffff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #connection-status {
+            margin-top: 10px;
+            font-size: 1.2rem;
+            color: #a0aec0;
         }
     </style>
 </head>
 <body>
+    <!-- Unique container for the entire Lissajous plotter application -->
     <div id="lissajous-app-container">
-        <h1>Lissajous Pattern Generator (XY Scope)</h1>
-
-        <!-- Controls for X-Axis Buffer -->
-        <div class="controls-section">
-            <h2 class="text-2xl font-bold text-blue-400 mb-4 text-center">X-Axis Signal (Buffer 1)</h2>
-            <div class="controls-grid">
-                <div class="control-group">
-                    <label for="waveTypeX">Wave Type X:</label>
-                    <select id="waveTypeX" class="rounded-md">
-                        <option value="sine">Sine</option>
-                        <option value="square">Square</option>
-                        <option value="sawtooth">Sawtooth</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label for="frequencyX">Frequency X (Hz):</label>
-                    <input type="range" id="frequencyX" min="1" max="10" step="1" value="1.0">
-                    <span id="frequencyXValue" class="value-display">1.0 Hz</span>
-                </div>
-                <div class="control-group">
-                    <label for="amplitudeX">Amplitude X:</label>
-                    <input type="range" id="amplitudeX" min="0.1" max="1" step="0.01" value="0.8">
-                    <span id="amplitudeXValue" class="value-display">0.80</span>
-                </div>
-                <div class="control-group">
-                    <label for="phaseX">Phase Shift X (Deg):</label>
-                    <input type="range" id="phaseX" min="-90" max="90" step="1" value="0">
-                    <span id="phaseXValue" class="value-display">0.0°</span>
-                </div>
-            </div>
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="flex">
+            <div class="spinner"></div>
+            <p>Connecting to server...</p>
+            <p id="connection-status"></p>
         </div>
 
-        <!-- Controls for Y-Axis Buffer -->
-        <div class="controls-section">
-            <h2 class="text-2xl font-bold text-red-400 mb-4 text-center">Y-Axis Signal (Buffer 2)</h2>
-            <div class="controls-grid">
-                <div class="control-group">
-                    <label for="waveTypeY">Wave Type Y:</label>
-                    <select id="waveTypeY" class="rounded-md">
-                        <option value="sine">Sine</option>
-                        <option value="square">Square</option>
-                        <option value="sawtooth">Sawtooth</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label for="frequencyY">Frequency Y (Hz):</label>
-                    <input type="range" id="frequencyY" min="1" max="10" step="1" value="2.0">
-                    <span id="frequencyYValue" class="value-display">2.0 Hz</span>
-                </div>
-                <div class="control-group">
-                    <label for="amplitudeY">Amplitude Y:</label>
-                    <input type="range" id="amplitudeY" min="0.1" max="1" step="0.01" value="0.8">
-                    <span id="amplitudeYValue" class="value-display">0.80</span>
-                </div>
-                <div class="control-group">
-                    <label for="phaseY">Phase Shift Y (Deg):</label>
-                    <input type="range" id="phaseY" min="-90" max="90" step="1" value="0">
-                    <span id="phaseYValue" class="value-display">0.0°</span>
+        <!-- Main App Content (hidden by default, shown when connected) -->
+        <div id="app-content" class="hidden w-full h-full flex flex-col items-center justify-center">
+            <h1>Lissajous Pattern Generator (XY Scope)</h1>
+
+            <div class="controls-section">
+                <h2 class="text-2xl font-bold text-blue-400 mb-4 text-center">X-Axis Signal (Buffer 1)</h2>
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label for="waveTypeX">Wave Type X:</label>
+                        <select id="waveTypeX" class="rounded-md">
+                            <option value="sine">Sine</option>
+                            <option value="square">Square</option>
+                            <option value="sawtooth">Sawtooth</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="frequencyX">Frequency X (Hz):</label>
+                        <input type="range" id="frequencyX" min="1" max="10" step="1" value="1">
+                        <span id="frequencyXValue" class="value-display">1 Hz</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="amplitudeX">Amplitude X:</label>
+                        <input type="range" id="amplitudeX" min="0.1" max="1" step="0.01" value="0.8">
+                        <span id="amplitudeXValue" class="value-display">0.80</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="phaseX">Phase Shift X (Deg):</label>
+                        <input type="range" id="phaseX" min="-90" max="90" step="1" value="0">
+                        <span id="phaseXValue" class="value-display">0.0°</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="chart-container">
-            <canvas id="lissajousChart"></canvas>
+            <div class="controls-section">
+                <h2 class="text-2xl font-bold text-red-400 mb-4 text-center">Y-Axis Signal (Buffer 2)</h2>
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label for="waveTypeY">Wave Type Y:</label>
+                        <select id="waveTypeY" class="rounded-md">
+                            <option value="sine">Sine</option>
+                            <option value="square">Square</option>
+                            <option value="sawtooth">Sawtooth</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="frequencyY">Frequency Y (Hz):</label>
+                        <input type="range" id="frequencyY" min="1" max="10" step="1" value="2">
+                        <span id="frequencyYValue" class="value-display">2 Hz</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="amplitudeY">Amplitude Y:</label>
+                        <input type="range" id="amplitudeY" min="0.1" max="1" step="0.01" value="0.8">
+                        <span id="amplitudeYValue" class="value-display">0.80</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="phaseY">Phase Shift Y (Deg):</label>
+                        <input type="range" id="phaseY" min="-90" max="90" step="1" value="90">
+                        <span id="phaseYValue" class="value-display">90.0°</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="lissajousChart"></canvas>
+            </div>
         </div>
     </div>
 
     <script>
-        // This JavaScript will connect to your local Gunicorn server for testing
-        const socket = io('http://localhost:5000'); // Ensure this points to your local server!
+        // Element references for loading screen
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const appContent = document.getElementById('app-content');
+        const connectionStatus = document.getElementById('connection-status');
+        let reconnectAttempt = 0; // Track reconnection attempts
+
+        // This JavaScript will connect to your Render app
+        // IMPORTANT: Replace 'http://localhost:5000' with YOUR actual Render service URL for the Lissajous app when deploying to Render.
+        const socket = io('http://localhost:5000', {
+            reconnectionAttempts: 10, // Max reconnection attempts
+            reconnectionDelay: 1000, // Initial delay before reconnection
+            reconnectionDelayMax: 5000 // Max delay between attempts
+        }); 
         let lissajousChart; // Chart.js instance for the scatter plot
 
         // Get HTML elements for X-axis controls
@@ -198,28 +263,32 @@
 
         // Function to send all parameters to Python backend
         function sendParams() {
-            const params = {
-                x: {
-                    type: waveTypeXSelect.value,
-                    frequency: parseFloat(frequencyXSlider.value),
-                    amplitude: parseFloat(amplitudeXSlider.value),
-                    phase_deg: parseFloat(phaseXSlider.value)
-                },
-                y: {
-                    type: waveTypeYSelect.value,
-                    frequency: parseFloat(frequencyYSlider.value),
-                    amplitude: parseFloat(amplitudeYSlider.value),
-                    phase_deg: parseFloat(phaseYSlider.value)
-                }
-            };
-            socket.emit('update_params', params);
-            console.log('Sent params:', params);
+            if (socket.connected) { // Only send if connected
+                const params = {
+                    x: {
+                        type: waveTypeXSelect.value,
+                        frequency: parseInt(frequencyXSlider.value), // Send as integer
+                        amplitude: parseFloat(amplitudeXSlider.value),
+                        phase_deg: parseFloat(phaseXSlider.value)
+                    },
+                    y: {
+                        type: waveTypeYSelect.value,
+                        frequency: parseInt(frequencyYSlider.value), // Send as integer
+                        amplitude: parseFloat(amplitudeYSlider.value),
+                        phase_deg: parseFloat(phaseYSlider.value)
+                    }
+                };
+                socket.emit('update_params', params);
+                console.log('Sent params:', params);
+            } else {
+                console.warn('Socket not connected, delaying parameter send.');
+            }
         }
 
         // Add event listeners for all controls
         waveTypeXSelect.addEventListener('change', sendParams);
         frequencyXSlider.addEventListener('input', () => {
-            frequencyXValueSpan.textContent = `${parseFloat(frequencyXSlider.value).toFixed(1)} Hz`;
+            frequencyXValueSpan.textContent = `${parseInt(frequencyXSlider.value)} Hz`; // Display as integer
             sendParams();
         });
         amplitudeXSlider.addEventListener('input', () => {
@@ -233,7 +302,7 @@
 
         waveTypeYSelect.addEventListener('change', sendParams);
         frequencyYSlider.addEventListener('input', () => {
-            frequencyYValueSpan.textContent = `${parseFloat(frequencyYSlider.value).toFixed(1)} Hz`;
+            frequencyYValueSpan.textContent = `${parseInt(frequencyYSlider.value)} Hz`; // Display as integer
             sendParams();
         });
         amplitudeYSlider.addEventListener('input', () => {
@@ -247,14 +316,14 @@
 
         // Initialize Chart.js for an XY scatter plot
         function initializeChart(xData, yData, paramsX, paramsY) {
-            console.log("initializeChart called with data:", { xData, yData }); // NEW LOG
+            console.log("initializeChart called with data:", { xData, yData });
             const ctx = document.getElementById('lissajousChart').getContext('2d');
             
             const scatterData = xData.map((xVal, index) => ({
                 x: xVal,
                 y: yData[index]
             }));
-            console.log("Prepared scatterData for Chart.js:", scatterData); // NEW LOG
+            console.log("Prepared scatterData for Chart.js:", scatterData);
 
             lissajousChart = new Chart(ctx, {
                 type: 'scatter',
@@ -318,59 +387,97 @@
                     }
                 }
             });
-            console.log("Chart.js initialized."); // NEW LOG
+            console.log("Chart.js initialized.");
         }
 
-        // --- Socket.IO Event Listeners ---
+        // --- Socket.IO Event Listeners for Loading State ---
         socket.on('connect', () => {
             console.log('Connected to server via WebSocket');
+            loadingOverlay.classList.add('hidden'); // Hide loading overlay
+            appContent.classList.remove('hidden'); // Show app content
+            connectionStatus.textContent = ''; // Clear status message
+            reconnectAttempt = 0; // Reset reconnection attempts
         });
 
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            loadingOverlay.classList.remove('hidden'); // Show loading overlay
+            appContent.classList.add('hidden'); // Hide app content
+            connectionStatus.textContent = 'Disconnected. Attempting to reconnect...';
+        });
+
+        socket.on('reconnecting', (attemptNumber) => {
+            reconnectAttempt = attemptNumber;
+            console.log(`Attempting to reconnect: ${reconnectAttempt}`);
+            loadingOverlay.classList.remove('hidden'); // Show loading overlay
+            appContent.classList.add('hidden'); // Hide app content
+            connectionStatus.textContent = `Connecting to server... Attempt ${reconnectAttempt}`;
+        });
+
+        socket.on('reconnect_error', (error) => {
+            console.error('Reconnection error:', error);
+            connectionStatus.textContent = `Reconnection error: ${error.message}`;
+        });
+
+        socket.on('reconnect_failed', () => {
+            console.error('Reconnection failed completely.');
+            connectionStatus.textContent = 'Failed to connect to server. Please try again later.';
+        });
+
+        // Ensure initial state is loading
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!socket.connected) {
+                loadingOverlay.classList.remove('hidden');
+                appContent.classList.add('hidden');
+                connectionStatus.textContent = 'Connecting to server...';
+            }
+        });
+
+        // --- Socket.IO Event Listener for Waveform Data ---
         socket.on('waveform_data', (response) => {
-            console.log('Received waveform data:', response);
-            const xData = response.x_data;
-            const yData = response.y_data;
-            const paramsX = response.params_x;
-            const paramsY = response.params_y;
+            console.log('RAW Response from Backend:', response);
+            // Safely get parameters, providing empty objects as fallbacks
+            const xData = response.x_data || [];
+            const yData = response.y_data || [];
+            const paramsX = response.params_x || {};
+            const paramsY = response.params_y || {};
 
-            // Update all controllers to reflect current state
-            waveTypeXSelect.value = paramsX.type;
-            frequencyXSlider.value = paramsX.frequency;
-            amplitudeXSlider.value = paramsX.amplitude;
-            phaseXSlider.value = paramsX.phase_deg;
-            frequencyXValueSpan.textContent = `${paramsX.frequency.toFixed(1)} Hz`;
-            amplitudeXValueSpan.textContent = `${paramsX.amplitude.toFixed(2)}`;
-            phaseXValueSpan.textContent = `${paramsX.phase_deg.toFixed(1)}°`;
+            // Update all controllers to reflect current state (especially on initial load)
+            waveTypeXSelect.value = paramsX.type || 'sine'; // Default if missing
+            frequencyXSlider.value = paramsX.frequency || 1; // Default if missing
+            amplitudeXSlider.value = paramsX.amplitude || 0.8; // Default if missing
+            phaseXSlider.value = paramsX.phase_deg || 0; // Default if missing
+            frequencyXValueSpan.textContent = `${paramsX.frequency || 1} Hz`; // Display as integer, default if missing
+            amplitudeXValueSpan.textContent = `${(paramsX.amplitude || 0.8).toFixed(2)}`;
+            phaseXValueSpan.textContent = `${(paramsX.phase_deg || 0).toFixed(1)}°`;
 
-            waveTypeYSelect.value = paramsY.type;
-            frequencyYSlider.value = paramsY.frequency;
-            amplitudeYSlider.value = paramsY.amplitude;
-            phaseYSlider.value = paramsY.phase_deg;
-            frequencyYValueSpan.textContent = `${paramsY.frequency.toFixed(1)} Hz`;
-            amplitudeYValueSpan.textContent = `${paramsY.amplitude.toFixed(2)}`;
-            phaseYValueSpan.textContent = `${paramsY.phase_deg.toFixed(1)}°`;
+            waveTypeYSelect.value = paramsY.type || 'sine'; // Default if missing
+            frequencyYSlider.value = paramsY.frequency || 2; // Default if missing
+            amplitudeYSlider.value = paramsY.amplitude || 0.8; // Default if missing
+            phaseYSlider.value = paramsY.phase_deg || 90; // Default if missing
+            frequencyYValueSpan.textContent = `${paramsY.frequency || 2} Hz`; // Display as integer, default if missing
+            amplitudeYValueSpan.textContent = `${(paramsY.amplitude || 0.8).toFixed(2)}`;
+            phaseYValueSpan.textContent = `${(paramsY.phase_deg || 90).toFixed(1)}°`;
 
+            // Format data for Chart.js scatter plot
             const scatterData = xData.map((xVal, index) => ({
                 x: xVal,
                 y: yData[index]
             }));
-            console.log("Updated scatterData for Chart.js:", scatterData); // NEW LOG
+            console.log("Updated scatterData for Chart.js:", scatterData);
 
             if (!lissajousChart) {
                 initializeChart(xData, yData, paramsX, paramsY);
             } else {
                 lissajousChart.data.datasets[0].data = scatterData;
                 lissajousChart.update();
-                console.log("Chart.js updated."); // NEW LOG
+                console.log("Chart.js updated.");
             }
-        });
-
-        socket.on('disconnect', () => {
-            console.log('Disconnected from server');
         });
 
         socket.on('error', (error) => {
             console.error('Socket error:', error);
+            connectionStatus.textContent = `Error: ${error.message}`;
         });
 
     </script>
